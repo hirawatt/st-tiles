@@ -2,3 +2,4 @@ opencv-python-headless
 numpy
 pandas
 streamlit==1.25.0
+streamlit_image_select

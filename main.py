@@ -1,6 +1,10 @@
 import cv2
+from PIL import Image
 import numpy as np
 import streamlit as st
+import platform
+# extra packages
+from streamlit_image_select import image_select
 
 def detect_floor(image):
     """Detects the floor in an image file.
@@ -22,7 +26,7 @@ def detect_floor(image):
     contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     # Find the largest contour, which is likely to be the floor.
-    largest_contour = max(contours, key=cv2.contourArea)
+    largest_contour = max(contours, key=cv2.contourArea, default=0)
 
     # Check if the largest contour is large enough to be considered a floor.
     if cv2.contourArea(largest_contour) > 10000:
@@ -31,21 +35,48 @@ def detect_floor(image):
         return False
 
 if __name__ == "__main__":
-    st.title("Marble/Tile Selection App")
+    st.set_page_config(
+        "Interio",
+        "🏠",
+        initial_sidebar_state="expanded",
+        layout="wide",
+    )
+    st.title("Interio App")
 
-    selection = st.radio("Upload file/Take live image?", ["Offline", "Live"])
+    pattern_selected = image_select("Select any one", ["images/marble1.jpg", "images/marble2.jpg", "images/marble3.jpg", "images/marble4.jpg", "images/marble5.jpg"])
+    st.write(pattern_selected)
+    col1, col2 = st.columns(2)
+    selection = st.sidebar.radio("Upload file/Take live image?", ["Offline", "Live"])
     if selection == "Offline":
-        st.file_uploader("Upload Floor Image")
+        st.sidebar.file_uploader("Upload Floor Image", type=['png', 'jpg'])
+
     else:
-        camera_image = st.camera_input("Click an image of floor")
+        img_file_buffer = st.camera_input("Click an image of floor")
+        if img_file_buffer is not None:
+            # To read image file buffer as a PIL Image:
+            img = Image.open(img_file_buffer)
 
-    # Load the image file.
-    image = cv2.imread("image.jpg")
-    #image = cv2.imread(camera_image)
+            # To convert PIL Image to numpy array:
+            img_array = np.array(img)
 
-    # Detect the floor in the image.
-    is_floor_detected = detect_floor(image)
-    #is_floor_detected = detect_floor(camera_image)
+            # Check the shape of img_array:
+            # Should output shape: (height, width, channels)
+            st.write(img_array.shape)
 
-    # Print the result.
-    st.info("Is floor detected? {}".format(is_floor_detected))
+            # Detect the floor in the image.
+            is_floor_detected = detect_floor(img_array)
+
+            st.info("Is floor detected? {}".format(is_floor_detected))
+
+    # Check if streamlit running on localhost or cloud
+    ppro = platform.machine()
+    print("Platform Processor: ", ppro)
+
+    if ppro != "":
+        # Load the image file.
+        col1.image("image.jpg")
+        image = cv2.imread("image.jpg")
+
+        # Detect the floor in the image.
+        is_floor_detected = detect_floor(image)
+        col1.info("Is floor detected? {}".format(is_floor_detected))
