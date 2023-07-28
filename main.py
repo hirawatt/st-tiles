@@ -2,7 +2,6 @@ import cv2
 from PIL import Image
 import numpy as np
 import streamlit as st
-import platform
 # extra packages
 from streamlit_image_select import image_select
 
@@ -15,24 +14,26 @@ def detect_floor(image):
     Returns:
         A boolean value indicating whether the floor was detected.
     """
+    try:
+        # Convert the image to grayscale.
+        grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Convert the image to grayscale.
-    grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Apply a threshold to the grayscale image to binarize it.
+        thresholded_image = cv2.threshold(grayscale_image, 127, 255, cv2.THRESH_BINARY)[1]
 
-    # Apply a threshold to the grayscale image to binarize it.
-    thresholded_image = cv2.threshold(grayscale_image, 127, 255, cv2.THRESH_BINARY)[1]
+        # Find the contours in the thresholded image.
+        contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Find the contours in the thresholded image.
-    contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # Find the largest contour, which is likely to be the floor.
+        largest_contour = max(contours, key=cv2.contourArea, default=0)
 
-    # Find the largest contour, which is likely to be the floor.
-    largest_contour = max(contours, key=cv2.contourArea, default=0)
-
-    # Check if the largest contour is large enough to be considered a floor.
-    if cv2.contourArea(largest_contour) > 10000:
-        return True
-    else:
-        return False
+        # Check if the largest contour is large enough to be considered a floor.
+        if cv2.contourArea(largest_contour) > 10000:
+            return True
+        else:
+            return False
+    except:
+        st.error("Floor not detected. Select another image.")
 
 if __name__ == "__main__":
     st.set_page_config(
@@ -41,17 +42,24 @@ if __name__ == "__main__":
         initial_sidebar_state="expanded",
         layout="wide",
     )
-    st.title("Interio App")
 
     pattern_selected = image_select("Select any one", ["images/marble1.jpg", "images/marble2.jpg", "images/marble3.jpg", "images/marble4.jpg", "images/marble5.jpg"])
     st.write(pattern_selected)
     col1, col2 = st.columns(2)
     selection = st.sidebar.radio("Upload file/Take live image?", ["Offline", "Live"])
     if selection == "Offline":
-        st.sidebar.file_uploader("Upload Floor Image", type=['png', 'jpg'])
+        uploaded_file = st.sidebar.file_uploader("Upload Floor Image", type=['png', 'jpg'])
+        if uploaded_file is not None:
+            file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+            image = cv2.imdecode(file_bytes, 1)
+            col1.image(image, channels="BGR")
 
-    else:
-        img_file_buffer = st.camera_input("Click an image of floor")
+            # Detect the floor in the image.
+            is_floor_detected = detect_floor(image)
+            col1.info("Is floor detected? {}".format(is_floor_detected))
+
+    elif selection == "Live":
+        img_file_buffer = col1.camera_input("Click an image of floor")
         if img_file_buffer is not None:
             # To read image file buffer as a PIL Image:
             img = Image.open(img_file_buffer)
@@ -65,18 +73,5 @@ if __name__ == "__main__":
 
             # Detect the floor in the image.
             is_floor_detected = detect_floor(img_array)
-
             st.info("Is floor detected? {}".format(is_floor_detected))
 
-    # Check if streamlit running on localhost or cloud
-    ppro = platform.machine()
-    print("Platform Processor: ", ppro)
-
-    if ppro != "":
-        # Load the image file.
-        col1.image("image.jpg")
-        image = cv2.imread("image.jpg")
-
-        # Detect the floor in the image.
-        is_floor_detected = detect_floor(image)
-        col1.info("Is floor detected? {}".format(is_floor_detected))
