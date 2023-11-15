@@ -2,7 +2,6 @@ import cv2
 from PIL import Image
 import numpy as np
 import streamlit as st
-# extra packages
 from streamlit_image_select import image_select
 
 def detect_floor(image):
@@ -43,35 +42,33 @@ if __name__ == "__main__":
         layout="wide",
     )
 
-    pattern_selected = image_select("Select any one", ["images/marble1.jpg", "images/marble2.jpg", "images/marble3.jpg", "images/marble4.jpg", "images/marble5.jpg"])
-    st.write(pattern_selected)
     col1, col2 = st.columns(2)
-    selection = st.sidebar.radio("Upload file/Take live image?", ["Offline", "Live"])
-    if selection == "Offline":
-        uploaded_file = st.sidebar.file_uploader("Upload Floor Image", type=['png', 'jpg'])
-        if uploaded_file is not None:
-            file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-            image = cv2.imdecode(file_bytes, 1)
-            col1.image(image, channels="BGR")
+    uploaded_file = st.sidebar.file_uploader("Upload Floor Image", type=['png', 'jpg'])
+    if uploaded_file is not None:
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        image = cv2.imdecode(file_bytes, 1)
+        col1.image(image, channels="BGR")
 
-            # Detect the floor in the image.
-            is_floor_detected = detect_floor(image)
-            col1.info("Is floor detected? {}".format(is_floor_detected))
+        # Detect the floor in the image.
+        is_floor_detected = detect_floor(image)
+        col1.info("Is floor detected? {}".format(is_floor_detected))
 
-    elif selection == "Live":
-        img_file_buffer = col1.camera_input("Click an image of floor")
-        if img_file_buffer is not None:
-            # To read image file buffer as a PIL Image:
-            img = Image.open(img_file_buffer)
+    img_file_buffer = col1.camera_input("Click an image of floor")
+    if img_file_buffer is not None:
+        # To read image file buffer as a PIL Image:
+        img = Image.open(img_file_buffer)
 
-            # To convert PIL Image to numpy array:
-            img_array = np.array(img)
+        # To convert PIL Image to numpy array:
+        img_array = np.array(img)
 
-            # Check the shape of img_array:
-            # Should output shape: (height, width, channels)
-            st.write(img_array.shape)
+        # Check the shape of img_array:
+        # Should output shape: (height, width, channels)
+        st.write(img_array.shape)
 
-            # Detect the floor in the image.
-            is_floor_detected = detect_floor(img_array)
-            st.info("Is floor detected? {}".format(is_floor_detected))
+        # Detect the floor in the image.
+        is_floor_detected = detect_floor(img_array)
+        st.info("Is floor detected? {}".format(is_floor_detected))
 
+    # Display images to select from
+    pattern_selected = image_select("Select any one", ["images/marble1.jpg", "images/marble2.jpg", "images/marble3.jpg", "images/marble4.jpg", "images/marble5.jpg"])
+    #st.write(pattern_selected)
